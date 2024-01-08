@@ -1,6 +1,7 @@
 import pygame, json
 
-PHYSICS_TILES = {"grass"}
+PHYSICS_TILES = {"grass", "pink", "blue"}
+MAGIC_TILES = {"pink", "blue"}
 NEIGHBOR_OFFSETS = [
     (-1, 0), (-1, -1), (0, -1), (0, 0), (0, 1), (1, 1), (1, 0), (-1, 1), (1, -1)
 ]
@@ -13,22 +14,38 @@ class Tilemap:
         self.size = tile_size
 
         
-        for i in range(15):
+        for i in range(14):
             self.tilemap[str(i) + ";2"] = {
                 "type": "grass",
                 "variant": 0,
                 "pos": [i, 2]
             }
-            self.tilemap[str(i + 10) + ";3"] = {
+            self.tilemap[str(i + 21) + ";2"] = {
                 "type": "grass",
                 "variant": 0,
-                "pos": [i + 10, 3]
+                "pos": [i + 22, 2]
             }
-            self.tilemap[str(i + 20) + ";2"] = {
-                "type": "grass",
-                "variant": 0,
-                "pos": [i + 20, 2]
-            }
+        self.tilemap["14;1"] = {
+            "type": "grass",
+            "variant": 0,
+            "pos": [14, 1]
+        }
+        self.tilemap["20;1"] = {
+            "type": "grass",
+            "variant": 0,
+            "pos": [21, 1]
+        }
+        for i in range(5):
+            self.tilemap[str(i + 15) + ";1"] = {
+                    "type": "pink",
+                    "variant": 0,
+                    "pos": [i + 15, 1]
+                }
+            self.tilemap[str(i + 15) + ";4"] = {
+                    "type": "blue",
+                    "variant": 0,
+                    "pos": [i + 15, 4]
+                }
                      
 
     def tiles_around(self, pos, entity_height):
@@ -48,6 +65,28 @@ class Tilemap:
                     tiles.append(self.tilemap[check_location])
         return tiles
     
+    def check_below(self, pos, entity_height):
+        if entity_height > self.size:
+            difference = entity_height - self.size
+            tile_location = (int(pos[0] // self.size), int((pos[1] + difference) // self.size))
+        else:
+            tile_location = (int(pos[0] // self.size), int((pos[1]) // self.size))
+        check_position = pos[0] + entity_height
+        check_location = str(tile_location[0]) + ";" + str(tile_location[1] + 1)
+        if check_location in self.tilemap:
+            if self.tilemap[check_location]["type"] in PHYSICS_TILES:
+                return (tile_location[1] + 1) * self.size - check_position < 4
+            
+    def check_tile(self, pos, entity_height):
+        if entity_height > self.size:
+            difference = entity_height - self.size
+            tile_location = (int(pos[0] // self.size), int((pos[1] + difference) // self.size))
+        else:
+            tile_location = (int(pos[0] // self.size), int((pos[1]) // self.size))
+
+        if tile_location in self.tilemap:
+            print( self.tilemap[str(tile_location[0]) + ";" + str(tile_location[1])]["type"])
+    
     def rects_around(self, pos, entity_height):
         rects = []
         tiles = self.tiles_around(pos, entity_height)
@@ -61,6 +100,22 @@ class Tilemap:
                 ))
         return rects
 
+    def update_magic_tiles(self):
+        for location in self.tilemap:
+            tile = self.tilemap[location]
+            if self.game.player.projectile_type == "pink":
+                if tile["type"] == "pink":
+                    self.tilemap[location]["type"] += "_border"
+                elif tile["type"] == "blue_border":
+                    self.tilemap[location]["type"] = "blue"
+
+            elif self.game.player.projectile_type == "blue":
+                if tile["type"] == "blue":
+                    self.tilemap[location]["type"] += "_border"
+                elif tile["type"] == "pink_border":
+                    self.tilemap[location]["type"] = "pink"
+
+            
     def render(self, surface, offset=(0, 0)):
         for tile in self.offgrid_tiles:
             surface.blit(

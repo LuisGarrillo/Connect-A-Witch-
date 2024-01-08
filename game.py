@@ -16,15 +16,21 @@ class Game:
 
         self.scroll = [0, 0]
         self.playing = True
-        self.on_title_sreen = True
+        self.on_title_screen = True
         self.on_game = False
         self.on_tutorial = False
         self.game_over = False
         self.advance = False
-        self.finished = False
+        self.on_victory_screen = False
+
+        self.title_font = pygame.font.SysFont("Arial", 30, bold=True)
 
         self.assets = {
             "grass": load_images("tiles/grass"),
+            "pink": load_images("tiles/pink"),
+            "pink_border": load_images("tiles/pink_border"),
+            "blue": load_images("tiles/blue"),
+            "blue_border": load_images("tiles/blue_border"),
             "player/idle": Animation(load_images("entities/player/idle"), 5),
             "player/shooting": Animation(load_images("entities/player/shooting"), 5, loop=False),
             "projectile/pink" : Animation(load_images("projectiles/pink"), 5),
@@ -40,7 +46,6 @@ class Game:
             "staff": load_image("ui/staff.png"),
         }
         self.tilemap = Tilemap(self, tile_size=48)
-        self.set_up_game_loop()
 
     def set_up_game_loop(self):
         self.player = Player(self, [50, 80], (48, 64), 3)
@@ -50,12 +55,32 @@ class Game:
 
         self.enemies = []
         self.enemies.append(Enemy(self, [400, 80], (48, 64)))
+        self.enemies.append(Enemy(self, [900, 80], (48, 64)))
+        
+
+        self.enemy_total = 5
+        self.enemy_counter = 0
+
+    def title_screen(self):
+        render_text(self.display, "Connect a Witch!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 80))
+        render_text(self.display, "Move with arrow keys\nJump with Space\nSwitch magic with D\nShoot with F\nPress Space to play!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.set_up_game_loop()
+                    self.on_title_screen = False
+                    self.on_game = True
 
     def game_loop(self):
         
         self.display.blit(self.ui["spell/" + self.player.projectile_type], (16, 16))
         self.display.blit(self.ui["staff"], (16, 16))
-
+        render_text(self.display, str(self.enemy_counter) + "/" + str(self.enemy_total), self.title_font, (255, 255, 255), (self.display.get_width() - 80, 16))
+        
         update_movement = ((self.horizontal_movement[1] - self.horizontal_movement[0]) * 3.5, 0)
         self.player.update(update_movement)
         self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2.5 - self.scroll[0]) / 15
@@ -77,6 +102,7 @@ class Game:
                         kill = enemy.hit()
                         if kill:
                             self.enemies.remove(enemy)
+                            self.enemy_counter +=1
                     else:
                         enemy.reset()
             projectile.render(self.display, self.scroll)
@@ -84,7 +110,7 @@ class Game:
         for enemy in self.enemies.copy():
             enemy.update()
             enemy.render(self.display, self.scroll)
-            if enemy.attack_cooldown < 60:
+            if enemy.attack_cooldown > 0 and enemy.attack_cooldown < 60:
                 if enemy.rect().colliderect(self.player.rect()):
                     self.player.hit()
 
@@ -99,10 +125,13 @@ class Game:
                 if event.key == pygame.K_RIGHT:
                     self.horizontal_movement[1] = True
                 if event.key == pygame.K_SPACE:
-                    self.player.velocity[1] = -7
+                    self.player.jump()
                 if event.key == pygame.K_f:
                     self.player.shoot()
                 if event.key == pygame.K_d:
+                    if self.tilemap.check_tile == "pink_border":
+                        print("hi")
+                    self.tilemap.update_magic_tiles()
                     self.player.switch_colors()
 
             if event.type == pygame.KEYUP:
@@ -111,10 +140,30 @@ class Game:
                 if event.key == pygame.K_RIGHT:
                     self.horizontal_movement[1] = False
 
+    def victory_screen(self):
+        render_text(self.display, "You Saved all the villagers!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
+        render_text(self.display, "Press Space to go back to the title screen!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.on_title_sreen = True
+                    self.on_game = False
+                    self.on_victory_screen = False
+
     def run(self):
         while True:
             self.display.fill((0, 0, 0))
-            self.game_loop()
+            if self.on_title_screen:
+                self.title_screen()
+            elif self.on_game:
+                self.game_loop()
+            elif self.on_victory_screen:
+                self.victory_screen()
+            
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
             pygame.display.update()
             self.clock.tick(60)

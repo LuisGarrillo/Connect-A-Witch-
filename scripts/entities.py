@@ -74,6 +74,9 @@ class Player(PhysicsEntity):
         self.projectile_type = "pink"
         self.invincibility = 0
         self.shoot_cooldown = 0
+        self.air_time = 0
+        self.jump_cap = 1
+        self.jumps = self.jump_cap
 
         self.set_action("idle")
 
@@ -85,6 +88,11 @@ class Player(PhysicsEntity):
         if self.invincibility:
             self.invincibility -= 1
 
+        self.air_time += 1
+        if self.collisions["down"]:
+            self.jumps = self.jump_cap
+            self.air_time = 0  
+
         if self.shoot_cooldown:
             self.shoot_cooldown -= 1
             if self.shoot_cooldown == 10:
@@ -93,6 +101,12 @@ class Player(PhysicsEntity):
         if not self.wait:
             self.set_action("idle")
 
+    def jump(self) -> None:
+        if self.jumps:
+            print("hi")
+            self.velocity[1] = -7
+            self.jumps = max(0, self.jumps - 1)
+    
     def shoot(self) -> None:
         if self.shoot_cooldown == 0:
             self.shoot_cooldown = 20
