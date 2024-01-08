@@ -12,18 +12,24 @@ class Tilemap:
         self.offgrid_tiles = []
         self.size = tile_size
 
-        for i in range(10):
-            self.tilemap[str(i) + ";5"] = {
+        
+        for i in range(15):
+            self.tilemap[str(i) + ";2"] = {
                 "type": "grass",
                 "variant": 0,
-                "pos": [i, 5]
+                "pos": [i, 2]
             }
-        for i in range(10):
-            self.tilemap[str(i) + ";0"] = {
+            self.tilemap[str(i + 10) + ";3"] = {
                 "type": "grass",
                 "variant": 0,
-                "pos": [i, 0]
+                "pos": [i + 10, 3]
             }
+            self.tilemap[str(i + 20) + ";2"] = {
+                "type": "grass",
+                "variant": 0,
+                "pos": [i + 20, 2]
+            }
+                     
 
     def tiles_around(self, pos, entity_height):
         tiles = []
@@ -62,8 +68,8 @@ class Tilemap:
                 (tile["pos"][0] - offset[0], tile["pos"][1] - offset[1]) 
             )
 
-        for x in range(offset[0] // self.size, (offset[0] + surface.get_width()) // self.size + 1):
-            for y in range(offset[1] // self.size, (offset[1] + surface.get_height()) // self.size + 1):
+        for x in range(offset[0] // self.size - 4, (offset[0] + surface.get_width()) // self.size + 4):
+            for y in range(offset[1] // self.size - 4, (offset[1] + surface.get_height()) // self.size + 4):
                 location = str(x) + ";" + str(y)
 
                 if location in self.tilemap:
