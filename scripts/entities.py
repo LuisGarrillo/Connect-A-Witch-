@@ -57,7 +57,7 @@ class PhysicsEntity:
             elif frame_movement[0] < 0:
                 self.flip = True 
 
-        self.velocity[1] = min(5, self.velocity[1] + 0.3)
+        self.velocity[1] = min(7, self.velocity[1] + 0.3)
 
         if self.collisions['down'] or self.collisions['up']:
             self.velocity[1] = 0
@@ -99,6 +99,10 @@ class Player(PhysicsEntity):
             if self.shoot_cooldown == 10:
                 self.wait = False
 
+        if self.air_time > 4:
+            if self.jumps == self.jump_cap:
+                self.jumps -= 1
+
         if self.game.yellow_key and self.position[0] > 2550:
             self.game.tilemap.remove_yellow_door()
 
@@ -106,7 +110,7 @@ class Player(PhysicsEntity):
             self.set_action("idle")
 
     def jump(self) -> None:
-        if self.jumps:
+        if self.jumps and self.air_time < 6:
             self.velocity[1] = -7
             self.jumps = max(0, self.jumps - 1)
     
