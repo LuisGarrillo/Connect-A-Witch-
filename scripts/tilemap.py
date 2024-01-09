@@ -1,6 +1,6 @@
 import pygame, json
 
-PHYSICS_TILES = {"grass", "pink", "blue"}
+PHYSICS_TILES = {"grass", "pink", "blue", "yellow_key_door"}
 MAGIC_TILES = {"pink", "blue"}
 NEIGHBOR_OFFSETS = [
     (-1, 0), (-1, -1), (0, -1), (0, 0), (0, 1), (1, 1), (1, 0), (-1, 1), (1, -1)
@@ -10,42 +10,41 @@ class Tilemap:
     def __init__(self, game, tile_size=16) -> None:
         self.game = game
         self.tilemap = {}
+        self.enemy_spawner = []
         self.offgrid_tiles = []
         self.size = tile_size
+    
+    def load(self, path):
+        with open(path, "r") as file:
+            map_data = json.load(file)
 
+        self.tilemap = map_data["tilemap"]
+        self.size = map_data["tile_size"]
+        self.offgrid_tiles = map_data["offgrid"]
+
+    def save(self, path):
+        with open(path, "w") as file:
+            json.dump({"tilemap": self.tilemap, "tile_size": self.size, "offgrid": self.offgrid_tiles}, file)
+
+    def extract(self,id_pairs, keep=False):
+        matches = []
+        for tile in self.offgrid_tiles.copy():
+            if (tile["type"], tile["variant"]) in id_pairs:
+                matches.append(tile.copy())
+                if not keep:
+                    self.offgrid_tiles.remove(tile)
         
-        for i in range(14):
-            self.tilemap[str(i) + ";2"] = {
-                "type": "grass",
-                "variant": 0,
-                "pos": [i, 2]
-            }
-            self.tilemap[str(i + 21) + ";2"] = {
-                "type": "grass",
-                "variant": 0,
-                "pos": [i + 22, 2]
-            }
-        self.tilemap["14;1"] = {
-            "type": "grass",
-            "variant": 0,
-            "pos": [14, 1]
-        }
-        self.tilemap["20;1"] = {
-            "type": "grass",
-            "variant": 0,
-            "pos": [21, 1]
-        }
-        for i in range(5):
-            self.tilemap[str(i + 15) + ";1"] = {
-                    "type": "pink",
-                    "variant": 0,
-                    "pos": [i + 15, 1]
-                }
-            self.tilemap[str(i + 15) + ";4"] = {
-                    "type": "blue",
-                    "variant": 0,
-                    "pos": [i + 15, 4]
-                }
+        for location in self.tilemap:
+            tile = self.tilemap[location]
+            if (tile["type"], tile["variant"]) in id_pairs:
+                matches.append(tile.copy())
+                matches[-1]["pos"] = matches[-1]["pos"].copy()
+                matches[-1]["pos"][0] *= self.size
+                matches[-1]["pos"][1] *= self.size
+                if not keep:
+                    del self.tilemap["location"]
+
+        return matches
                      
 
     def tiles_around(self, pos, entity_height):
@@ -83,9 +82,11 @@ class Tilemap:
             tile_location = (int(pos[0] // self.size), int((pos[1] + difference) // self.size))
         else:
             tile_location = (int(pos[0] // self.size), int((pos[1]) // self.size))
+        
+        tile_location = str(tile_location[0]) + ";" + str(tile_location[1])
 
         if tile_location in self.tilemap:
-            print( self.tilemap[str(tile_location[0]) + ";" + str(tile_location[1])]["type"])
+            return self.tilemap[tile_location]["type"]
     
     def rects_around(self, pos, entity_height):
         rects = []
@@ -115,7 +116,12 @@ class Tilemap:
                 elif tile["type"] == "pink_border":
                     self.tilemap[location]["type"] = "pink"
 
-            
+    def remove_yellow_door(self):
+        for location in self.tilemap.copy():
+            tile = self.tilemap[location]
+            if tile["type"] == "yellow_key_door":
+                del self.tilemap[location]
+
     def render(self, surface, offset=(0, 0)):
         for tile in self.offgrid_tiles:
             surface.blit(

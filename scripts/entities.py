@@ -1,5 +1,6 @@
 import pygame, random
 from scripts.projectile import Projectile
+from scripts.utils import load_image
 COLORS = ("blue", "pink")
 class PhysicsEntity:
     def __init__(self, game, entity_type, position, size, health) -> None:
@@ -98,12 +99,14 @@ class Player(PhysicsEntity):
             if self.shoot_cooldown == 10:
                 self.wait = False
 
+        if self.game.yellow_key and self.position[0] > 2550:
+            self.game.tilemap.remove_yellow_door()
+
         if not self.wait:
             self.set_action("idle")
 
     def jump(self) -> None:
         if self.jumps:
-            print("hi")
             self.velocity[1] = -7
             self.jumps = max(0, self.jumps - 1)
     
@@ -114,9 +117,15 @@ class Player(PhysicsEntity):
             self.wait = True
             self.set_action("shooting")
 
-    def hit(self) -> None:
-        self.health -= 1
+    def hit(self, damage) -> None:
+        self.health -= damage
         self.invincibility = 60
+        for _ in range(damage):
+            self.game.hearts.pop()
+            if len(self.game.hearts) <= 0:
+                break
+            self.game.heartless.append((load_image("ui/heartless.png"), (self.game.hearts[len(self.game.hearts) - 1][1][0] + 30, 16)))
+                
     
     def switch_colors(self) -> None:
         if self.projectile_type == "pink":
@@ -147,8 +156,9 @@ class Weakness:
     def render(self, surface, offset) -> None:
         surface.blit(self.animation.img(), (self.position[0] - offset[0], self.position[1] - offset[1]))
 class Enemy(PhysicsEntity):
-    def __init__(self, game, position, size, health=3) -> None:
+    def __init__(self, id, game, position, size, health=3) -> None:
         super().__init__(game, "enemy", position, size, health)
+        self.id = id
         self.health = health
         self.weaknesses = []
         self.auxiliar_weaknesses = []

@@ -9,8 +9,8 @@ class Game:
         pygame.init()
         pygame.display.set_caption("editor")
 
-        self.screen = pygame.display.set_mode((640, 480))
-        self.display = pygame.Surface((320, 240))
+        self.screen = pygame.display.set_mode((960, 540))
+        self.display = pygame.Surface((480, 270))
         self.clock = pygame.time.Clock()
         
         self.assets = {
@@ -18,13 +18,14 @@ class Game:
             "pink": load_images("tiles/pink"),
             "blue": load_images("tiles/blue"),
             "pink_border": load_images("tiles/pink_border"),
-            "blue_border": load_images("tiles/blue_border")
+            "blue_border": load_images("tiles/blue_border"),
+            "yellow_key_door":load_images("tiles/yellow_key_door"),
         }
         self.movement = [False, False, False, False]
 
-        self.tilemap = Tilemap(self)
+        self.tilemap = Tilemap(self, tile_size=48)
         try:
-            self.tilemap.load("map.json")
+            self.tilemap.load("data/map.json")
         except FileNotFoundError:
             pass
 
@@ -39,6 +40,7 @@ class Game:
         self.on_grid = True
 
     def run(self) -> None:
+        counter = 0
         while True:
             self.display.fill((0, 0, 0))
             
@@ -53,7 +55,7 @@ class Game:
             mouse_position = pygame.mouse.get_pos()
             mouse_position = (mouse_position[0] / RENDER_SCALE, mouse_position[1] / RENDER_SCALE)
             tile_position = (int((mouse_position[0] + self.scroll[0]) // self.tilemap.size), int((mouse_position[1] + self.scroll[1]) // self.tilemap.size)) 
-
+            print(tile_position) if counter % 60 == 0 else None
             self.display.blit(current_tile_image, (5,5))
             if self.on_grid:
                 self.display.blit(current_tile_image, (tile_position[0] * self.tilemap.size - self.scroll[0], tile_position[1] * self.tilemap.size - self.scroll[1]))
@@ -64,7 +66,7 @@ class Game:
                 self.tilemap.tilemap[str(tile_position[0]) + ";" + str(tile_position[1])] = {
                     "type": self.tile_list[self.tile_group],
                     "variant": self.tile_variant,
-                    "position": tile_position
+                    "pos": tile_position
                 }
             if self.right_clicking :
                 tile_location = str(tile_position[0]) + ";" + str(tile_position[1])
@@ -73,7 +75,7 @@ class Game:
 
                 for tile in self.tilemap.offgrid_tiles.copy():
                     tile_image = self.assets[tile["type"]][tile["variant"]]
-                    tile_rectangle = pygame.Rect(tile["position"][0] - self.scroll[0], tile["position"][1] - self.scroll[1], tile_image.get_width(), tile_image.get_height())
+                    tile_rectangle = pygame.Rect(tile["pos"][0] - self.scroll[0], tile["pos"][1] - self.scroll[1], tile_image.get_width(), tile_image.get_height())
                     
                     if tile_rectangle.collidepoint(mouse_position):
                         self.tilemap.offgrid_tiles.remove(tile)
@@ -89,7 +91,7 @@ class Game:
                             self.tilemap.offgrid_tiles.append({
                                 "type": self.tile_list[self.tile_group],
                                 "variant": self.tile_variant,
-                                "position": (mouse_position[0] + self.scroll[0], mouse_position[1] + self.scroll[1])
+                                "pos": (mouse_position[0] + self.scroll[0], mouse_position[1] + self.scroll[1])
                             })
                     if event.button == 3:
                         self.right_clicking = True
@@ -127,7 +129,7 @@ class Game:
                     if event.key == pygame.K_g:
                         self.on_grid = not self.on_grid
                     if event.key == pygame.K_o:
-                        self.tilemap.save("map.json")
+                        self.tilemap.save("data/map.json")
                     if event.key == pygame.K_t:
                         self.tilemap.autotile()
 
@@ -146,5 +148,6 @@ class Game:
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
             pygame.display.update()
             self.clock.tick(60)
+            counter+= 1
 
 Game().run()

@@ -1,6 +1,6 @@
 import pygame, sys
 
-from scripts.utils import load_image, load_images, render_text, Animation, Dialogue
+from scripts.utils import load_image, load_images, render_text, load, Animation, Dialogue
 from scripts.planets import Planets
 from scripts.entities import Player, Enemy
 from scripts.tilemap import Tilemap
@@ -31,6 +31,7 @@ class Game:
             "pink_border": load_images("tiles/pink_border"),
             "blue": load_images("tiles/blue"),
             "blue_border": load_images("tiles/blue_border"),
+            "yellow_key_door":load_images("tiles/yellow_key_door"),
             "player/idle": Animation(load_images("entities/player/idle"), 5),
             "player/shooting": Animation(load_images("entities/player/shooting"), 5, loop=False),
             "projectile/pink" : Animation(load_images("projectiles/pink"), 5),
@@ -44,21 +45,37 @@ class Game:
             "spell/pink": load_image("ui/pink_spell.png"),
             "spell/blue": load_image("ui/blue_spell.png"),
             "staff": load_image("ui/staff.png"),
+            "heart": load_image("ui/heart.png"),
+            "heartless": load_image("ui/heartless.png"),
+            "yellow_key": load_image("ui/yellow_key.png"),
         }
         self.tilemap = Tilemap(self, tile_size=48)
+        try:
+            self.tilemap.load("data/map.json")
+        except FileNotFoundError:
+            pass
 
     def set_up_game_loop(self):
-        self.player = Player(self, [50, 80], (48, 64), 3)
+        enemy_spawners, player_spawner = load()
+        self.player = Player(self, [player_spawner[0], player_spawner[1]], (48, 64), 3)
+        self.hearts = []
+        self.heartless = []
+        for i in range(self.player.health):
+            self.hearts.append((load_image("ui/heart.png"), (80 + 30 * i, 16)))
         self.horizontal_movement = [False, False]
         self.projectiles = []
         self.explosions = []
 
+        self.yellow_key = False
+
         self.enemies = []
-        self.enemies.append(Enemy(self, [400, 80], (48, 64)))
-        self.enemies.append(Enemy(self, [900, 80], (48, 64)))
+        id = 0
+        for spawner in enemy_spawners:
+            self.enemies.append(Enemy(id, self, [spawner[0], spawner[1]], (48, 64)))
+            id+=1
         
 
-        self.enemy_total = 5
+        self.enemy_total = 4
         self.enemy_counter = 0
 
     def title_screen(self):
@@ -76,15 +93,13 @@ class Game:
                     self.on_game = True
 
     def game_loop(self):
-        
-        self.display.blit(self.ui["spell/" + self.player.projectile_type], (16, 16))
-        self.display.blit(self.ui["staff"], (16, 16))
-        render_text(self.display, str(self.enemy_counter) + "/" + str(self.enemy_total), self.title_font, (255, 255, 255), (self.display.get_width() - 80, 16))
-        
+        def rewards(enemy):
+            if enemy.id == 0:
+                self.yellow_key = True
         update_movement = ((self.horizontal_movement[1] - self.horizontal_movement[0]) * 3.5, 0)
         self.player.update(update_movement)
         self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2.5 - self.scroll[0]) / 15
-        self.scroll[1] += (self.player.rect().centery - self.display.get_height() / 1.5 - self.scroll[1])
+        self.scroll[1] += (self.player.rect().centery - self.display.get_height() / 1.9 - self.scroll[1])
         self.scroll = [int(self.scroll[0]), int(self.scroll[1])]
 
         self.tilemap.render(self.display, self.scroll)
@@ -101,6 +116,7 @@ class Game:
                     if projectile.type == enemy.weaknesses[0].type:
                         kill = enemy.hit()
                         if kill:
+                            rewards(enemy)
                             self.enemies.remove(enemy)
                             self.enemy_counter +=1
                     else:
@@ -111,8 +127,18 @@ class Game:
             enemy.update()
             enemy.render(self.display, self.scroll)
             if enemy.attack_cooldown > 0 and enemy.attack_cooldown < 60:
-                if enemy.rect().colliderect(self.player.rect()):
-                    self.player.hit()
+                if enemy.rect().colliderect(self.player.rect()) and not self.player.invincibility:
+                    self.player.hit(1)
+
+        self.display.blit(self.ui["spell/" + self.player.projectile_type], (16, 16))
+        self.display.blit(self.ui["staff"], (16, 16))
+        for heart in self.hearts:
+            self.display.blit(heart[0], heart[1])
+        for heart in self.heartless:
+            self.display.blit(heart[0], heart[1])
+        render_text(self.display, str(self.enemy_counter) + "/" + str(self.enemy_total), self.title_font, (255, 255, 255), (self.display.get_width() - 80, 16))
+        if self.yellow_key:
+            self.display.blit(self.ui["yellow_key"], (90, 48))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -129,10 +155,9 @@ class Game:
                 if event.key == pygame.K_f:
                     self.player.shoot()
                 if event.key == pygame.K_d:
-                    if self.tilemap.check_tile == "pink_border":
-                        print("hi")
-                    self.tilemap.update_magic_tiles()
-                    self.player.switch_colors()
+                    if not self.tilemap.check_tile(self.player.position, self.player.size[1]) in {"pink_border", "blue_border"}:
+                        self.tilemap.update_magic_tiles()
+                        self.player.switch_colors()
 
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
@@ -140,9 +165,16 @@ class Game:
                 if event.key == pygame.K_RIGHT:
                     self.horizontal_movement[1] = False
 
-    def victory_screen(self):
-        render_text(self.display, "You Saved all the villagers!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
-        render_text(self.display, "Press Space to go back to the title screen!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
+        if self.enemy_counter == self.enemy_total:
+            self.on_game = False
+            self.on_victory_screen = True
+        elif self.player.health == 0:
+            self.on_game = False
+            self.game_over = True
+
+    def game_over_screen(self):
+        render_text(self.display, "Game Over!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
+        render_text(self.display, "Press Space to go \nback to the title screen!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -150,8 +182,21 @@ class Game:
             
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    self.on_title_sreen = True
-                    self.on_game = False
+                    self.on_title_screen = True
+                    self.game_over = False
+
+    def victory_screen(self):
+        render_text(self.display, "You Saved all the villagers!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
+        render_text(self.display, "Press Space to go \nback to the title screen!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.on_title_screen = True
                     self.on_victory_screen = False
 
     def run(self):
@@ -161,6 +206,8 @@ class Game:
                 self.title_screen()
             elif self.on_game:
                 self.game_loop()
+            elif self.game_over:
+                self.game_over_screen()
             elif self.on_victory_screen:
                 self.victory_screen()
             

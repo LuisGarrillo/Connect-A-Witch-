@@ -17,6 +17,19 @@ def render_text(surface, text, font, color, position):
     img = font.render(text, True, color)
     surface.blit(img, position)
 
+def load():
+    with open("data/saves/save.txt", "r") as file:
+        data = file.read().split("\n")
+        print(data)
+        enemy_spawners_holder = data[0].split("_")
+        enemy_spawners = []
+        for enemy_spawner in enemy_spawners_holder:
+            spawner = enemy_spawner.split(",")
+            enemy_spawners.append((int(spawner[0]), int(spawner[1])))
+        
+        player_spawner = data[1].split(",")
+        player_spawner = (int(player_spawner[0]), int(player_spawner[1]))
+        return enemy_spawners, player_spawner
 class Animation:
     def __init__(self, images : list, duration = 5, loop = True) -> None:
         self.images = images
