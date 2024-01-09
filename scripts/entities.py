@@ -177,7 +177,7 @@ class Enemy(PhysicsEntity):
         self.set_action("idle")
 
     def update(self, movement=[0, 0]) -> None:
-        if not self.attack_cooldown:
+        if not self.attack_cooldown and self.position[1] == self.game.player.position[1]:
             if self.position[0] > self.game.player.position[0] and self.position[0] - self.game.player.position[0] - self.game.player.size[0] < 260:
                 movement[0] = -1
                 if self.position[0] - self.game.player.position[0] - self.game.player.size[0] < 20:

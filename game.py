@@ -74,8 +74,7 @@ class Game:
             self.enemies.append(Enemy(id, self, [spawner[0], spawner[1]], (48, 64)))
             id+=1
         
-
-        self.enemy_total = 4
+        self.enemy_total = len(self.enemies)
         self.enemy_counter = 0
 
     def title_screen(self):
@@ -168,6 +167,7 @@ class Game:
         if self.enemy_counter == self.enemy_total:
             self.on_game = False
             self.on_victory_screen = True
+            
         elif self.player.health == 0:
             self.on_game = False
             self.game_over = True
