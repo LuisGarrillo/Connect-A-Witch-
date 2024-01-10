@@ -27,6 +27,7 @@ class Game:
 
         self.assets = {
             "grass": load_images("tiles/grass"),
+            "stone": load_images("tiles/stone"),
             "pink": load_images("tiles/pink"),
             "pink_border": load_images("tiles/pink_border"),
             "blue": load_images("tiles/blue"),
@@ -95,6 +96,8 @@ class Game:
         def rewards(enemy):
             if enemy.id == 0:
                 self.yellow_key = True
+            elif enemy.id == 6:
+                self.player.upgrade_life()
         update_movement = ((self.horizontal_movement[1] - self.horizontal_movement[0]) * 3.5, 0)
         self.player.update(update_movement)
         self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2.5 - self.scroll[0]) / 15

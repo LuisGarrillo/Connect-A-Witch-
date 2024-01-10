@@ -21,7 +21,7 @@ def load():
     with open("data/saves/save.txt", "r") as file:
         data = file.read().split("\n")
         print(data)
-        enemy_spawners_holder = data[0].split("_")
+        enemy_spawners_holder = data[0].split("__")
         enemy_spawners = []
         for enemy_spawner in enemy_spawners_holder:
             spawner = enemy_spawner.split(",")

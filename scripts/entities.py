@@ -71,7 +71,8 @@ class PhysicsEntity:
 class Player(PhysicsEntity):
     def __init__(self, game, position, size, health) -> None:
         super().__init__(game, "player", position, size, health)
-        self.health = 3
+        self.health_maximum = health
+        self.health = self.health_maximum
         self.projectile_type = "pink"
         self.invincibility = 0
         self.shoot_cooldown = 0
@@ -130,12 +131,19 @@ class Player(PhysicsEntity):
                 break
             self.game.heartless.append((load_image("ui/heartless.png"), (self.game.hearts[len(self.game.hearts) - 1][1][0] + 30, 16)))
                 
-    
     def switch_colors(self) -> None:
         if self.projectile_type == "pink":
             self.projectile_type = "blue"
         else:
             self.projectile_type = "pink"
+
+    def upgrade_life(self) -> None:
+        self.health_maximum += 1
+        self.health = self.health_maximum
+        self.game.hearts.clear()
+        for i in range(self.health):
+            self.game.hearts.append((load_image("ui/heart.png"), (80 + 30 * i, 16)))
+        self.game.heartless.clear()
 
 class Weakness:
     def __init__(self, game, position, size, count) -> None:
@@ -149,9 +157,23 @@ class Weakness:
         self.type = random.choice(COLORS)
         self.animation = self.game.assets["weakness/" + self.type]
 
-    def update(self, enemy_position) -> None:
+    def update(self, enemy_position, flip) -> None:
+
+        """if flip:
+            if self.count == 0:
+                self.position[0] = enemy_position[0] - 16
+            else:
+                self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) * self.count
+        else:
+            if self.count == 2:
+                self.position[0] = enemy_position[0] - 16
+            elif self.count == 1:
+                self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) 
+            else:
+                self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) * 2"""
+        
         if self.count == 0:
-            self.position[0] = enemy_position[0] - 16
+                self.position[0] = enemy_position[0] - 16
         else:
             self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) * self.count
 
@@ -212,7 +234,7 @@ class Enemy(PhysicsEntity):
             self.position[0] = 0
 
         for weakness in self.weaknesses:
-            weakness.update(self.position)
+            weakness.update(self.position, self.flip)
     
     def render(self, surface, offset) -> None:
         super().render(surface, offset)

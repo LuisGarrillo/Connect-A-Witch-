@@ -1,6 +1,6 @@
 import pygame, json
 
-PHYSICS_TILES = {"grass", "pink", "blue", "yellow_key_door"}
+PHYSICS_TILES = {"grass", "stone", "pink", "blue", "yellow_key_door"}
 MAGIC_TILES = {"pink", "blue"}
 NEIGHBOR_OFFSETS = [
     (-1, 0), (-1, -1), (0, -1), (0, 0), (0, 1), (1, 1), (1, 0), (-1, 1), (1, -1)
