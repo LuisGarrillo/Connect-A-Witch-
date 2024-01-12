@@ -33,7 +33,11 @@ class Game:
             "blue": load_images("tiles/blue"),
             "blue_border": load_images("tiles/blue_border"),
             "yellow_key_door":load_images("tiles/yellow_key_door"),
+            "red_key_door":load_images("tiles/red_key_door"),
             "player/idle": Animation(load_images("entities/player/idle"), 5),
+            "player/run": Animation(load_images("entities/player/run"), 5),
+            "player/jump": Animation(load_images("entities/player/jump"), 5),
+            "player/fall": Animation(load_images("entities/player/fall"), 5),
             "player/shooting": Animation(load_images("entities/player/shooting"), 5, loop=False),
             "projectile/pink" : Animation(load_images("projectiles/pink"), 5),
             "projectile/blue" : Animation(load_images("projectiles/blue"), 5),
@@ -49,6 +53,7 @@ class Game:
             "heart": load_image("ui/heart.png"),
             "heartless": load_image("ui/heartless.png"),
             "yellow_key": load_image("ui/yellow_key.png"),
+            "red_key": load_image("ui/red_key.png"),
         }
         self.tilemap = Tilemap(self, tile_size=48)
         try:
@@ -68,6 +73,9 @@ class Game:
         self.explosions = []
 
         self.yellow_key = False
+        self.yellow_door_removed = False
+        self.red_key = True
+        self.red_door_removed = False
 
         self.enemies = []
         id = 0
@@ -98,6 +106,9 @@ class Game:
                 self.yellow_key = True
             elif enemy.id == 6:
                 self.player.upgrade_life()
+            elif enemy.id == 5:
+                self.red_key = True
+
         update_movement = ((self.horizontal_movement[1] - self.horizontal_movement[0]) * 3.5, 0)
         self.player.update(update_movement)
         self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2.5 - self.scroll[0]) / 15
@@ -141,6 +152,8 @@ class Game:
         render_text(self.display, str(self.enemy_counter) + "/" + str(self.enemy_total), self.title_font, (255, 255, 255), (self.display.get_width() - 80, 16))
         if self.yellow_key:
             self.display.blit(self.ui["yellow_key"], (90, 48))
+        if self.red_key:
+            self.display.blit(self.ui["red_key"], (120, 48))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

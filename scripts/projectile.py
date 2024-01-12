@@ -33,4 +33,7 @@ class Projectile:
             return self.movement_counter > 150
     
     def render(self, surface, offset=(0,0)):
-        surface.blit(self.game.assets["projectile/" + self.type].img(), (self.position[0] - offset[0], self.position[1] - offset[1]))
+        if self.flip:
+            surface.blit(pygame.transform.flip(self.game.assets["projectile/" + self.type].img(), True, False), (self.position[0] - offset[0], self.position[1] - offset[1]))
+        else:
+            surface.blit(self.game.assets["projectile/" + self.type].img(), (self.position[0] - offset[0], self.position[1] - offset[1]))

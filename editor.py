@@ -21,6 +21,7 @@ class Game:
             "pink_border": load_images("tiles/pink_border"),
             "blue_border": load_images("tiles/blue_border"),
             "yellow_key_door":load_images("tiles/yellow_key_door"),
+            "red_key_door":load_images("tiles/red_key_door"),
         }
         self.movement = [False, False, False, False]
 

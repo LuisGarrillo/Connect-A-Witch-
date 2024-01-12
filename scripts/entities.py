@@ -67,7 +67,10 @@ class PhysicsEntity:
         self.animation.update()
 
     def render(self, surface, offset) -> None:
-        surface.blit(self.animation.img(), (self.position[0] - offset[0], self.position[1] - offset[1]))
+        if self.flip:
+            surface.blit(pygame.transform.flip(self.animation.img(), True, False), (self.position[0] - offset[0], self.position[1] - offset[1]))
+        else:
+            surface.blit(self.animation.img(), (self.position[0] - offset[0], self.position[1] - offset[1]))
 class Player(PhysicsEntity):
     def __init__(self, game, position, size, health) -> None:
         super().__init__(game, "player", position, size, health)
@@ -95,20 +98,30 @@ class Player(PhysicsEntity):
             self.jumps = self.jump_cap
             self.air_time = 0  
 
+        if self.air_time > 5:
+            if self.jumps == self.jump_cap:
+                self.jumps -= 1
+            if self.velocity[1] < 0:
+                self.set_action("jump")
+            elif self.velocity[1] > 0:
+                self.set_action("fall")
+        elif not movement[0] == 0:
+            self.set_action("run")
+        else:
+            self.set_action("idle")
+        
         if self.shoot_cooldown:
+            self.set_action("shooting")
             self.shoot_cooldown -= 1
             if self.shoot_cooldown == 10:
                 self.wait = False
 
-        if self.air_time > 4:
-            if self.jumps == self.jump_cap:
-                self.jumps -= 1
-
-        if self.game.yellow_key and self.position[0] > 2550:
+        if self.game.yellow_key and self.position[0] > 2550 and not self.game.yellow_door_removed:
             self.game.tilemap.remove_yellow_door()
-
-        if not self.wait:
-            self.set_action("idle")
+            self.game.yellow_door_removed = True
+        if self.game.red_key and self.position[0] > 4040 and not self.game.red_door_removed:
+            self.game.tilemap.remove_red_door()
+            self.game.red_door_removed = True
 
     def jump(self) -> None:
         if self.jumps and self.air_time < 6:

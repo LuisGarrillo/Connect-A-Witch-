@@ -1,6 +1,6 @@
 import pygame, json
 
-PHYSICS_TILES = {"grass", "stone", "pink", "blue", "yellow_key_door"}
+PHYSICS_TILES = {"grass", "stone", "pink", "blue", "yellow_key_door", "red_key_door"}
 MAGIC_TILES = {"pink", "blue"}
 NEIGHBOR_OFFSETS = [
     (-1, 0), (-1, -1), (0, -1), (0, 0), (0, 1), (1, 1), (1, 0), (-1, 1), (1, -1)
@@ -120,6 +120,12 @@ class Tilemap:
         for location in self.tilemap.copy():
             tile = self.tilemap[location]
             if tile["type"] == "yellow_key_door":
+                del self.tilemap[location]
+    
+    def remove_red_door(self):
+        for location in self.tilemap.copy():
+            tile = self.tilemap[location]
+            if tile["type"] == "red_key_door":
                 del self.tilemap[location]
 
     def render(self, surface, offset=(0, 0)):
