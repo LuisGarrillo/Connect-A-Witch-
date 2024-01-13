@@ -1,8 +1,7 @@
 import pygame, sys
 
 from scripts.utils import load_image, load_images, render_text, load, Animation, Dialogue
-from scripts.planets import Planets
-from scripts.entities import Player, Enemy
+from scripts.entities import Player, Enemy, Villager
 from scripts.tilemap import Tilemap
 
 class Game:
@@ -24,8 +23,10 @@ class Game:
         self.on_victory_screen = False
 
         self.title_font = pygame.font.SysFont("Arial", 30, bold=True)
+        self.sub_title_font = pygame.font.SysFont("Arial", 20, bold=True)
 
         self.assets = {
+            "background": load_image("background.png"),
             "grass": load_images("tiles/grass"),
             "stone": load_images("tiles/stone"),
             "pink": load_images("tiles/pink"),
@@ -42,7 +43,9 @@ class Game:
             "projectile/pink" : Animation(load_images("projectiles/pink"), 5),
             "projectile/blue" : Animation(load_images("projectiles/blue"), 5),
             "enemy/idle": Animation(load_images("entities/enemy/idle"), 5),
-            "enemy/attack": Animation(load_images("entities/enemy/attack"), 5, loop=False),
+            "enemy/chase": Animation(load_images("entities/enemy/chase"), 5),
+            "enemy/attack": Animation(load_images("entities/enemy/attack"), 60, loop=False),
+            "villager/idle": Animation(load_images("entities/villager/idle"), 5),
             "weakness/pink": Animation(load_images("entities/weakness/pink"), 5),
             "weakness/blue": Animation(load_images("entities/weakness/blue"), 5),
         }
@@ -55,6 +58,23 @@ class Game:
             "yellow_key": load_image("ui/yellow_key.png"),
             "red_key": load_image("ui/red_key.png"),
         }
+
+        self.sfx = {
+            "jump": pygame.mixer.Sound("data/sfxs/jump.wav"),
+            "shoot": pygame.mixer.Sound("data/sfxs/shoot.wav"),
+            "switch": pygame.mixer.Sound("data/sfxs/switch.wav"),
+            "attack": pygame.mixer.Sound("data/sfxs/attack.wav"),
+            "hit": pygame.mixer.Sound("data/sfxs/hit.wav"),
+            "key": pygame.mixer.Sound("data/sfxs/key.wav"),
+        }
+        self.sfx["jump"].set_volume(0.3)
+        self.sfx["shoot"].set_volume(0.5)
+        self.sfx["switch"].set_volume(0.3)
+        self.sfx["attack"].set_volume(0.5)
+        self.sfx["hit"].set_volume(0.4)
+        self.sfx["key"].set_volume(0.3)
+
+
         self.tilemap = Tilemap(self, tile_size=48)
         try:
             self.tilemap.load("data/map.json")
@@ -74,7 +94,7 @@ class Game:
 
         self.yellow_key = False
         self.yellow_door_removed = False
-        self.red_key = True
+        self.red_key = False
         self.red_door_removed = False
 
         self.enemies = []
@@ -82,13 +102,13 @@ class Game:
         for spawner in enemy_spawners:
             self.enemies.append(Enemy(id, self, [spawner[0], spawner[1]], (48, 64)))
             id+=1
-        
+        self.villagers= []
         self.enemy_total = len(self.enemies)
         self.enemy_counter = 0
 
     def title_screen(self):
-        render_text(self.display, "Connect a Witch!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 80))
-        render_text(self.display, "Move with arrow keys\nJump with Space\nSwitch magic with D\nShoot with F\nPress Space to play!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
+        render_text(self.display, "Connect a Witch!", self.title_font, (255, 255, 255), (self.display.get_width() / 4, self.display.get_height() / 2 - 80))
+        render_text(self.display, "Move with arrow keys\nJump with Space\nSwitch magic with D\nShoot with F\nPress Space to play!", self.sub_title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 25))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -103,17 +123,22 @@ class Game:
     def game_loop(self):
         def rewards(enemy):
             if enemy.id == 0:
+                self.sfx["key"].play()
                 self.yellow_key = True
             elif enemy.id == 6:
                 self.player.upgrade_life()
-            elif enemy.id == 5:
-                self.red_key = True
+            #elif enemy.id == 5:
+            #   self.red_key = True
 
         update_movement = ((self.horizontal_movement[1] - self.horizontal_movement[0]) * 3.5, 0)
         self.player.update(update_movement)
         self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2.5 - self.scroll[0]) / 15
         self.scroll[1] += (self.player.rect().centery - self.display.get_height() / 1.9 - self.scroll[1])
         self.scroll = [int(self.scroll[0]), int(self.scroll[1])]
+
+        for villager in self.villagers.copy():
+            villager.update()
+            villager.render(self.display, self.scroll)
 
         self.tilemap.render(self.display, self.scroll)
         if not self.player.invincibility or self.player.invincibility % 10 == 0:
@@ -132,6 +157,7 @@ class Game:
                             rewards(enemy)
                             self.enemies.remove(enemy)
                             self.enemy_counter +=1
+                            self.villagers.append(Villager(self, enemy.position, (48, 64)))
                     else:
                         enemy.reset()
             projectile.render(self.display, self.scroll)
@@ -190,7 +216,7 @@ class Game:
 
     def game_over_screen(self):
         render_text(self.display, "Game Over!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
-        render_text(self.display, "Press Space to go \nback to the title screen!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
+        render_text(self.display, "Press Space to go \nback to the title screen!", self.sub_title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -202,8 +228,8 @@ class Game:
                     self.game_over = False
 
     def victory_screen(self):
-        render_text(self.display, "You Saved all the villagers!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2 - 50))
-        render_text(self.display, "Press Space to go \nback to the title screen!", self.title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
+        render_text(self.display, "You Saved all the villagers!", self.title_font, (255, 255, 255), (self.display.get_width() / 6, self.display.get_height() / 2 - 50))
+        render_text(self.display, "Press Space to go \nback to the title screen!", self.sub_title_font, (255, 255, 255), (self.display.get_width() / 3, self.display.get_height() / 2))
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -217,7 +243,7 @@ class Game:
 
     def run(self):
         while True:
-            self.display.fill((0, 0, 0))
+            self.display.blit(self.assets["background"], (0, 0))
             if self.on_title_screen:
                 self.title_screen()
             elif self.on_game:

@@ -125,17 +125,20 @@ class Player(PhysicsEntity):
 
     def jump(self) -> None:
         if self.jumps and self.air_time < 6:
+            self.game.sfx["jump"].play()
             self.velocity[1] = -7
             self.jumps = max(0, self.jumps - 1)
     
     def shoot(self) -> None:
         if self.shoot_cooldown == 0:
+            self.game.sfx["shoot"].play()
             self.shoot_cooldown = 20
             self.game.projectiles.append(Projectile(self.game, (self.position[0], self.position[1] + self.size[1]/2), (48, 16), self.projectile_type, flip=self.flip))
             self.wait = True
             self.set_action("shooting")
 
     def hit(self, damage) -> None:
+        self.game.sfx["hit"].play()
         self.health -= damage
         self.invincibility = 60
         for _ in range(damage):
@@ -145,6 +148,7 @@ class Player(PhysicsEntity):
             self.game.heartless.append((load_image("ui/heartless.png"), (self.game.hearts[len(self.game.hearts) - 1][1][0] + 30, 16)))
                 
     def switch_colors(self) -> None:
+        self.game.sfx["switch"].play()
         if self.projectile_type == "pink":
             self.projectile_type = "blue"
         else:
@@ -172,7 +176,7 @@ class Weakness:
 
     def update(self, enemy_position, flip) -> None:
 
-        """if flip:
+        if flip:
             if self.count == 0:
                 self.position[0] = enemy_position[0] - 16
             else:
@@ -183,12 +187,12 @@ class Weakness:
             elif self.count == 1:
                 self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) 
             else:
-                self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) * 2"""
+                self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) * 2
         
-        if self.count == 0:
+        """if self.count == 0:
                 self.position[0] = enemy_position[0] - 16
         else:
-            self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) * self.count
+            self.position[0] = enemy_position[0] - 16 + (self.size[0] + 10) * self.count"""
 
         self.position[1] = enemy_position[1] - 30
             
@@ -201,6 +205,7 @@ class Enemy(PhysicsEntity):
         self.health = health
         self.weaknesses = []
         self.auxiliar_weaknesses = []
+        self.flip = True
         for i in range(self.health):
             weakness = Weakness(self.game, (self.position[0], self.position[1]), (20, 20), i)
             self.weaknesses.append(weakness)
@@ -215,10 +220,12 @@ class Enemy(PhysicsEntity):
         if not self.attack_cooldown and self.position[1] == self.game.player.position[1]:
             if self.position[0] > self.game.player.position[0] and self.position[0] - self.game.player.position[0] - self.game.player.size[0] < 260:
                 movement[0] = -1
+                self.set_action("chase")
                 if self.position[0] - self.game.player.position[0] - self.game.player.size[0] < 20:
                     self.attack()
             elif self.position[0] < self.game.player.position[0] and self.game.player.position[0] - self.position[0] - self.size[0]  < 260:
                 movement[0] = 1
+                self.set_action("chase")
                 if self.game.player.position[0] - self.position[0] - self.size[0] < 20:
                     self.attack()
             else:
@@ -233,6 +240,7 @@ class Enemy(PhysicsEntity):
         if self.attack_cooldown:
             self.attack_cooldown -= 1
             if self.attack_cooldown == 60:
+                self.game.sfx["attack"].play()
                 if self.flip:
                     self.velocity[0] = -5
                 else:
@@ -255,6 +263,7 @@ class Enemy(PhysicsEntity):
             weakness.render(surface, offset)
 
     def hit(self):
+        self.game.sfx["hit"].play()
         self.weaknesses.remove(self.weaknesses[0])
         return len(self.weaknesses) == 0
     
@@ -269,7 +278,12 @@ class Enemy(PhysicsEntity):
         self.health = len(self.weaknesses)
         
 
-        
+class Villager (PhysicsEntity):
+    def __init__(self, game, position, size) -> None:
+        super().__init__(game, "villager", position, size, 1)
+        self.set_action("idle")
 
+    def update(self, movement=[0, 0]) -> None:
+        super().update(movement)      
 
     
